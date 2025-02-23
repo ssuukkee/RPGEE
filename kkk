@@ -1,0 +1,145 @@
+import random
+import math
+
+class Character:
+    def __init__(self, name, hp, attack, defense, speed, skills):
+        self.name = name
+        self.hp = hp
+        self.max_hp = hp  # 最大HPを記録
+        self.attack = attack
+        self.defense = defense
+        self.speed = speed
+        self.skills = skills
+        self.guard_turns = 0  # 防御ターンのカウント
+        self.used_guard = False  # 完全防御革命を使用済みかどうか
+        self.stunned_turns = 0  # 行動不能ターン
+        self.defense_debuff_turns = 0  # 防御力低下ターン
+        self.defense_debuff_value = 0  # 防御低下値
+        self.spirit_bomb_turns = 0  # 元気玉のカウントダウン
+        self.love_curse_turns = 0  # 愛の呪のカウント
+        self.kante_active_turns = 0  # 貫手の効果ターン
+        self.metal_guard_uses = 2  # 完全鋼鉄革命の使用回数
+        self.lost_soul_used = False  # ロストソウルの使用回数管理
+        self.final_end_used = False  # ファイナル・ジエンドの使用回数管理
+
+    def is_alive(self):
+        return self.hp > 0
+
+    def display_hp(self):
+        print(f"{self.name} のHP: {self.hp}/{self.max_hp}")
+
+    def take_damage(self, damage, attacker):
+        # 回避計算
+        evade_chance = self.speed - attacker.speed
+        if evade_chance < 0:
+            evade_chance = abs(evade_chance) / 10  # 速度差がマイナスの時は、相手の回避率を10で割る
+        if random.randint(1, 100) <= evade_chance:
+            print(f"{self.name} は攻撃を回避した！")
+            return
+
+        if self.guard_turns > 0:
+            damage = 1  # 防御時はダメージを1に固定
+            self.guard_turns -= 1
+        elif self.love_curse_turns > 0:
+            damage = max(1, math.ceil(damage * 0.02))  # 愛の呪の効果でダメージ98%減少
+        elif self.kante_active_turns > 0 and damage > self.hp * 0.2:
+            self.hp -= math.ceil(self.hp * 0.2)  # 貫手の効果でHPの20%を減らす
+            print(f"{self.name} は貫手の効果で直接 {math.ceil(self.hp * 0.2)} のダメージを受けた！")
+            self.display_hp()
+            return  # 通常ダメージは無効化
+        
+        self.hp -= damage
+        if self.hp < 0:
+            self.hp = 0
+        self.display_hp()
+
+
+def calculate_damage(attacker, defender, skill_power):
+    damage = math.ceil((attacker.attack / 2) - (defender.defense / 4) + (skill_power / 2))
+    return max(1, damage)  # ダメージが0以下の場合は1にする
+
+def decide_turn_order(player, enemy):
+    speed_difference = player.speed - enemy.speed
+    if speed_difference > 0:
+        player_chance = min(90, 50 + speed_difference)  # スピードが高いほど最大90%で先行
+    else:
+        player_chance = max(10, 50 + speed_difference)  # スピードが低いほど最大10%まで減少
+    return player if random.randint(1, 100) <= player_chance else enemy
+
+def battle(player, enemy):
+    print(f"{enemy.name} が現れた！")
+    first_attacker = decide_turn_order(player, enemy)
+    second_attacker = enemy if first_attacker == player else player
+    print(f"{first_attacker.name} が先行！")
+
+    spirit_bomb_timer = 0
+    turn_counter = 0
+    while player.is_alive() and enemy.is_alive():
+        turn_counter += 1
+        if enemy.name == "メタルスライム" and turn_counter > 6:
+            print(f"{enemy.name} はにげだした！ {enemy.name} の勝利！")
+            return
+
+        if spirit_bomb_timer == 4:
+            print(f"{enemy.name} の元気玉が炸裂！ {player.name} は {enemy.skills['元気玉']} ダメージを受けた！")
+            player.take_damage(enemy.skills['元気玉'], enemy)
+            spirit_bomb_timer = 0
+        elif spirit_bomb_timer > 0:
+            spirit_bomb_timer += 1
+        
+        for attacker, defender in [(first_attacker, second_attacker), (second_attacker, first_attacker)]:
+            if not attacker.is_alive() or not defender.is_alive():
+                break
+            attacker.display_hp()
+            if attacker.stunned_turns > 0:
+                print(f"{attacker.name} は動けない！")
+                attacker.stunned_turns -= 1
+                continue
+
+            if attacker == player:
+                print("使用できる技: ", ", ".join(attacker.skills.keys()))
+                while True:
+                    skill = input("技を選んでください: ").strip()
+                    if skill in attacker.skills:
+                        break
+                    print("正しい技を選んでください。")
+            else:
+                skill = random.choice(list(attacker.skills.keys()))
+            
+            skill_power = attacker.skills[skill]
+            damage = calculate_damage(attacker, defender, skill_power)
+            print(f"{attacker.name} の {skill}！ {defender.name} に {damage} ダメージ！")
+            defender.take_damage(damage, attacker)
+            
+            if skill == "自爆スイッチ":
+                if defender.is_alive():
+                    print(f"{attacker.name} の自爆スイッチが発動！ しかし {defender.name} は耐えた！")
+                    print(f"{attacker.name} は敗北した...")
+                    attacker.hp = 0
+                    return
+                else:
+                    print(f"{attacker.name} の自爆スイッチが発動！ {defender.name} は倒れた！")
+                    return
+
+    if player.is_alive():
+        print(f"{enemy.name} を倒した！")
+    else:
+        print(f"{player.name} は敗北した...")
+
+if __name__ == "__main__":
+    player = Character("勇者", 700, 10, 5, 15, {
+        "体当たり": 30,
+        "焼肉パーティー": 50,
+        "長い肉": 40,
+        "自爆スイッチ": 500
+    })
+    
+    print("敵を選択してください: スライム / メタルスライム / 魔王")
+    while True:
+        enemy_choice = input("敵: ").strip()
+        if enemy_choice in enemies:
+            enemy = enemies[enemy_choice]
+            break
+        print("正しい敵を選択してください。")
+    
+    battle(player, enemy)
