@@ -1,23 +1,52 @@
-import random
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>おみくじ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        button {
+            font-size: 20px;
+            padding: 10px;
+        }
+        #result {
+            font-size: 30px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>おみくじを引こう！</h1>
+    <button onclick="drawOmikuji()">おみくじを引く</button>
+    <p id="result"></p>
 
-def omikuji():
-    results = [
-        ("大吉", 5),
-        ("中吉", 10),
-        ("小吉", 15),
-        ("吉", 20),
-        ("末吉", 20),
-        ("凶", 20),
-        ("大凶", 10)
-    ]
+    <script>
+        function drawOmikuji() {
+            const results = [
+                { name: "大吉", weight: 5 },
+                { name: "中吉", weight: 10 },
+                { name: "小吉", weight: 15 },
+                { name: "吉", weight: 20 },
+                { name: "末吉", weight: 20 },
+                { name: "凶", weight: 20 },
+                { name: "大凶", weight: 10 }
+            ];
 
-    # 確率リストを作成
-    choices, weights = zip(*results)
-    
-    # 確率に基づいてランダム選択
-    result = random.choices(choices, weights=weights)[0]
-    
-    return result
+            // 確率リストを作成
+            const choices = results.flatMap(item => Array(item.weight).fill(item.name));
 
-# 実行
-print("今日の運勢は…", omikuji())
+            // ランダムに1つ選択
+            const result = choices[Math.floor(Math.random() * choices.length)];
+
+            // 結果を表示
+            document.getElementById("result").textContent = `結果: ${result}`;
+        }
+    </script>
+</body>
+</html>
+
